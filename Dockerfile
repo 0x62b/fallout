@@ -91,14 +91,15 @@ FROM base
 ARG SENTRY_RELEASE=""
 ENV SENTRY_RELEASE=${SENTRY_RELEASE}
 
-# Copy built artifacts: gems, application
-COPY --from=build "${BUNDLE_PATH}" "${BUNDLE_PATH}"
-COPY --from=build /rails /rails
-
 # Run and own only the runtime files as a non-root user for security
 RUN groupadd --system --gid 1000 rails && \
-    useradd rails --uid 1000 --gid 1000 --create-home --shell /bin/bash && \
-    chown -R rails:rails db log storage tmp
+    useradd rails --uid 1000 --gid 1000 --create-home --shell /bin/bash
+
+# Copy built artifacts: gems, application — ownership set at copy time to avoid
+# a slow `chown -R` that would duplicate the entire tree into a new layer.
+COPY --from=build --chown=rails:rails "${BUNDLE_PATH}" "${BUNDLE_PATH}"
+COPY --from=build --chown=rails:rails /rails /rails
+
 USER 1000:1000
 
 # Entrypoint prepares the database.
