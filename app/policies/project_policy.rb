@@ -37,6 +37,12 @@ class ProjectPolicy < ApplicationPolicy
     owner? # User-facing project deletes are owner-only; admins use /admin or Airtable.
   end
 
+  def export_journal?
+    return false if record.discarded?
+
+    admin? || owner? # Journal export contains full project history/media links; restrict to owner/admin only.
+  end
+
   def ship?
     return false if record.discarded?
     return false if record.ships.where(status: %i[pending awaiting_identity]).exists? # Block while a submission is queued or held for identity verification

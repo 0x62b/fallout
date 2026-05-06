@@ -205,6 +205,7 @@ export default function ProjectsShow({
   can: {
     update: boolean
     destroy: boolean
+    export_journal: boolean
     ship: boolean
     manage_collaborators: boolean
     create_journal_entry: boolean
@@ -645,6 +646,20 @@ export default function ProjectsShow({
                     </button>
                   </TooltipTrigger>
                   <TooltipContent>Delete project</TooltipContent>
+                </Tooltip>
+              )}
+              {can.export_journal && (
+                <Tooltip side="top" gap={8}>
+                  <TooltipTrigger asChild>
+                    <a
+                      href={`/projects/${project.id}/export_journal`}
+                      aria-label="Export journal markdown"
+                      className="bg-brown text-light-brown border-2 border-dark-brown rounded px-3 h-10 flex items-center justify-center hover:opacity-80 cursor-pointer text-xs font-bold uppercase"
+                    >
+                      journal.md
+                    </a>
+                  </TooltipTrigger>
+                  <TooltipContent>Export journal markdown</TooltipContent>
                 </Tooltip>
               )}
             </div>

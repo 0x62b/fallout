@@ -175,3 +175,15 @@ Creates and manages recording sessions:
 - **`pages/projects/form.tsx`** — create/edit with Inertia `useForm`
 - **`pages/journal_entries/new.tsx`** — book-style dual-pane: left = markdown editor + image upload, right = tabbed media browser (Lapse/YouTube/Lookout)
 - **`pages/collaboration_invites/show.tsx`** — accept/decline invite
+
+## Journal Export
+
+- **Route:** `GET /projects/:id/export_journal`
+- **Controller:** `ProjectsController#export_journal`
+- **Policy gate:** `ProjectPolicy#export_journal?`
+- **Access:** owner or admin only (not collaborators)
+- **Output:** markdown download named `<project>-journal.md` with:
+  - ordered journal entries (oldest → newest)
+  - entry metadata (id, author, timestamp)
+  - raw journal content
+  - recording links for Lapse/Lookout playback URLs and YouTube watch URLs

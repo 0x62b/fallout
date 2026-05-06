@@ -1,8 +1,8 @@
 class ProjectsController < ApplicationController
   allow_unauthenticated_access only: %i[show] # Listed project details are public from Explore and the public API.
-  allow_trial_access only: %i[index show new create edit update destroy onboarding] # Trial users can manage their single project
+  allow_trial_access only: %i[index show new create edit update destroy onboarding export_journal] # Trial users can manage their single project and export their journal
   skip_onboarding_redirect only: %i[show] # Public project details must stay viewable before account onboarding.
-  before_action :set_project, only: %i[show edit update destroy]
+  before_action :set_project, only: %i[show edit update destroy export_journal]
 
   def onboarding
     authorize :project, :onboarding? # Policy gate for project onboarding access
@@ -66,6 +66,7 @@ class ProjectsController < ApplicationController
       can: {
         update: project_policy.update?,
         destroy: project_policy.destroy?,
+        export_journal: project_policy.export_journal?,
         ship: project_policy.ship?,
         manage_collaborators: collab_enabled && project_policy.manage_collaborators?,
         create_journal_entry: JournalEntryPolicy.new(current_user, @project.journal_entries.build(user: current_user)).create?,
@@ -174,6 +175,21 @@ class ProjectsController < ApplicationController
     end
   end
 
+  def export_journal
+    authorize @project, :export_journal?
+
+    journal_entries = @project.journal_entries.kept
+      .includes(:user, recordings: :recordable)
+      .order(created_at: :asc)
+
+    markdown = build_journal_export_markdown(@project, journal_entries)
+
+    send_data markdown,
+              filename: "#{@project.name.to_s.parameterize.presence || "project"}-journal.md",
+              type: "text/markdown; charset=utf-8",
+              disposition: "attachment"
+  end
+
   private
 
   def set_project
@@ -268,6 +284,53 @@ class ProjectsController < ApplicationController
       thumbnail_url: recordable.thumbnail_url.presence || recordable.thumbnail_url_for(quality: "hqdefault"),
       embed_url: "https://www.youtube-nocookie.com/embed/#{recordable.video_id}"
     }
+  end
+
+  def build_journal_export_markdown(project, journal_entries)
+    lines = []
+    lines << "# #{project.name} — Journal Export"
+    lines << ""
+    lines << "- Exported at: #{Time.current.utc.iso8601}"
+    lines << "- Project ID: #{project.id}"
+    lines << "- Entries: #{journal_entries.size}"
+    lines << ""
+
+    journal_entries.each_with_index do |entry, idx|
+      lines << "## Entry #{idx + 1}"
+      lines << "- ID: #{entry.id}"
+      lines << "- Author: #{entry.user.display_name}"
+      lines << "- Created At: #{entry.created_at.utc.iso8601}"
+      lines << ""
+      lines << "### Content"
+      lines << ""
+      lines << (entry.content.presence || "(no content)")
+      lines << ""
+
+      recording_links = export_recording_links(entry)
+      if recording_links.any?
+        lines << "### Recording Links"
+        lines << ""
+        recording_links.each { |link| lines << "- #{link}" }
+        lines << ""
+      end
+    end
+
+    lines.join("\n")
+  end
+
+  def export_recording_links(entry)
+    entry.recordings.filter_map do |recording|
+      recordable = recording.recordable
+
+      case recordable
+      when YouTubeVideo
+        recordable.youtube_url.presence
+      when LapseTimelapse, LookoutTimelapse
+        recordable.playback_url.presence
+      else
+        nil
+      end
+    end
   end
 
   def serialize_project_collaborator(collaborator)
