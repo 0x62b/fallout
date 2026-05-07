@@ -3,7 +3,7 @@
 # Returns the permalink of the matching message, or nil if none is found.
 class SlackCheckpointService
   CHANNEL_ID = "C0ATLF0ALBW"
-  MIN_TASK_TEXT_CHARS = 160
+  MAX_TASK_TEXT_CHARS = 120
 
   REVIEW_LABELS = {
     "time_audit"          => "Time Audit",
@@ -254,10 +254,7 @@ class SlackCheckpointService
   private_class_method :truncate_tasks_for_slack
 
   def self.next_task_truncate_limit(current_limit)
-    return 1200 if current_limit.nil?
-
-    next_limit = (current_limit * 0.75).floor
-    next_limit >= MIN_TASK_TEXT_CHARS ? next_limit : nil
+    current_limit.nil? ? MAX_TASK_TEXT_CHARS : nil
   end
   private_class_method :next_task_truncate_limit
 end
