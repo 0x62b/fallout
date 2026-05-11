@@ -77,6 +77,7 @@ class ProjectsController < ApplicationController
         update: project_policy.update?,
         destroy: project_policy.destroy?,
         export_journal: project_policy.export_journal?,
+        share: project_policy.share?, # Gates the "Copy share link" overflow menu item — true only for listed, non-discarded projects
         ship: project_policy.ship?,
         manage_collaborators: collab_enabled && project_policy.manage_collaborators?,
         create_journal_entry: JournalEntryPolicy.new(current_user, @project.journal_entries.build(user: current_user)).create?,
