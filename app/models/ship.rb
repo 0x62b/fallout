@@ -203,12 +203,60 @@ class Ship < ApplicationRecord
     project.ships.approved.where("created_at < ?", created_at).order(created_at: :desc).first
   end
 
+  # Populated by Ship.preload_cycle_started_at to bypass the per-ship query pair in cycle_started_at
+  attr_writer :cycle_started_at_cached
+
   # First ship-submission timestamp in the current cycle (the cycle this ship belongs to).
   # Used by reviewer "Waiting Xd (Yd)" labels — Y is total cycle wait, distinct from per-ship wait.
   def cycle_started_at
+    return @cycle_started_at_cached if defined?(@cycle_started_at_cached)
     cutoff = previous_approved_ship&.created_at || Time.at(0)
     project.ships.where("created_at > ? AND created_at <= ?", cutoff, created_at)
            .order(:created_at).pick(:created_at) || created_at
+  end
+
+  # Batch-compute cycle_started_at for a set of ships, with Rails.cache keyed on a per-project
+  # version stamp (max updated_at across the project's ships) so the cache invalidates whenever
+  # any sibling ship changes (new submission, status transition). 6h TTL is a safety net since
+  # the UI only displays days-of-waiting granularity.
+  CYCLE_STARTED_AT_CACHE_TTL = 6.hours
+
+  def self.preload_cycle_started_at(ships)
+    return if ships.blank?
+
+    project_ids = ships.map(&:project_id).uniq
+    project_versions = Ship.where(project_id: project_ids).group(:project_id).maximum(:updated_at)
+
+    cache_keys = ships.to_h { |s| [ s, cycle_started_at_cache_key(s, project_versions[s.project_id]) ] }
+    hits = Rails.cache.read_multi(*cache_keys.values)
+
+    uncached = []
+    ships.each do |ship|
+      cached = hits[cache_keys[ship]]
+      if cached
+        ship.cycle_started_at_cached = cached
+      else
+        uncached << ship
+      end
+    end
+    return if uncached.empty?
+
+    sibling_project_ids = uncached.map(&:project_id).uniq
+    by_project = Ship.where(project_id: sibling_project_ids).order(:created_at).group_by(&:project_id)
+
+    uncached.each do |ship|
+      siblings = by_project[ship.project_id] || []
+      prev_approved = siblings.reverse.find { |s| s.approved? && s.created_at < ship.created_at }
+      cutoff = prev_approved&.created_at || Time.at(0)
+      cycle_first = siblings.find { |s| s.created_at > cutoff && s.created_at <= ship.created_at }
+      value = cycle_first&.created_at || ship.created_at
+      ship.cycle_started_at_cached = value
+      Rails.cache.write(cache_keys[ship], value, expires_in: CYCLE_STARTED_AT_CACHE_TTL)
+    end
+  end
+
+  def self.cycle_started_at_cache_key(ship, project_version)
+    "ships/cycle_started_at/#{ship.id}/v#{project_version&.to_i || 0}"
   end
 
   def new_journal_entries

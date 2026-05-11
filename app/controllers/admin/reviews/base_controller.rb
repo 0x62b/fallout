@@ -48,16 +48,17 @@ class Admin::Reviews::BaseController < Admin::ApplicationController
   # -- Claim lifecycle --
 
   def release_all_review_claims
-    had_claim = any_active_claim?
-    Reviewable::REVIEW_MODELS.each { |name| name.constantize.release_all_claims!(current_user) }
-    flash.now[:notice] = "Review session ended." if had_claim
+    # update_all returns the affected row count; summing across models tells us whether
+    # the user had any active claim without an extra round of SELECTs.
+    released = Reviewable::REVIEW_MODELS.sum { |name| name.constantize.release_all_claims!(current_user) }
+    flash.now[:notice] = "Review session ended." if released.positive?
   end
 
   def claim_review!
-    had_claim = any_active_claim?
-
-    # Release any existing claim by this user (one claim at a time across all types)
-    Reviewable::REVIEW_MODELS.each { |name| name.constantize.release_all_claims!(current_user) }
+    # Release any existing claim by this user (one claim at a time across all types).
+    # Use the update_all row count as the "had_claim" signal — skips a separate active-claim probe.
+    released = Reviewable::REVIEW_MODELS.sum { |name| name.constantize.release_all_claims!(current_user) }
+    had_claim = released.positive?
 
     claimed = review_model.atomic_claim!(@review.id, current_user)
 
@@ -81,10 +82,6 @@ class Admin::Reviews::BaseController < Admin::ApplicationController
   end
 
   # -- Helpers --
-
-  def any_active_claim?
-    Reviewable::REVIEW_MODELS.any? { |name| name.constantize.active_claim_for(current_user).present? }
-  end
 
   def parse_skip_ids
     (params[:skip] || "").split(",").filter_map { |id| id.to_i if id.present? }
