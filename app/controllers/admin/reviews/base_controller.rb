@@ -171,7 +171,12 @@ class Admin::Reviews::BaseController < Admin::ApplicationController
 
   def serialize_project_context(project, ship)
     logged = (project.time_logged / 3600.0).round(1)
-    public_hrs = ship.approved_public_seconds ? (ship.approved_public_seconds / 3600.0).round(1) : nil
+    # ship.approved_public_seconds is only mirrored from the TA when the ship reaches :approved.
+    # During DR/BR review the ship is still :pending, so fall back to the TA's value once it has
+    # approved — otherwise the sidebar would show project.time_logged, which uses the persisted
+    # youtube stretch_multiplier (not yet synced from TA annotations) and misleads the reviewer.
+    public_seconds = ship.approved_public_seconds || (ship.time_audit_review&.approved? ? ship.time_audit_review.approved_public_seconds : nil)
+    public_hrs = public_seconds ? (public_seconds / 3600.0).round(1) : nil
     internal_hrs = internal_hours_display(ship)
     entry_count = project.kept_journal_entries.size
     {
