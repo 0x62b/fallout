@@ -60,12 +60,16 @@ class User < ApplicationRecord
   scoped_search on: :created_at, aliases: [ :joined ]
   scoped_search on: :roles, aliases: [ :role ], ext_method: :search_roles, only_explicit: true, operators: [ :eq, :ne ]
 
+  # Reachable from /admin/users and /admin/projects search via scoped_search. The value is
+  # spliced into the WHERE clause by scoped_search, so it must be safe SQL — validate against
+  # the role allowlist and parameter-bind, never string-interpolate (CVE-pattern: SQLi).
   def self.search_roles(_key, operator, value)
-    sanitized = ActiveRecord::Base.sanitize_sql_like(value)
+    return { conditions: "1=0" } unless VALID_ROLES.include?(value)
+
     sql = if operator == "="
-      "roles @> ARRAY['#{sanitized}']::varchar[]"
+      ActiveRecord::Base.sanitize_sql_array([ "roles @> ARRAY[?]::varchar[]", value ])
     else
-      "NOT (roles @> ARRAY['#{sanitized}']::varchar[])"
+      ActiveRecord::Base.sanitize_sql_array([ "NOT (roles @> ARRAY[?]::varchar[])", value ])
     end
     { conditions: sql }
   end
