@@ -178,6 +178,7 @@ class Admin::Reviews::BaseController < Admin::ApplicationController
       user_display_name: project.user.display_name,
       user_avatar: project.user.avatar,
       user_slack_id: project.user.slack_id, # Admin-only context; review pages are staff-only
+      collaborators: project.collaborator_users.map { |u| { id: u.id, display_name: u.display_name, avatar: u.avatar } },
       logged_hours: logged,
       approved_public_hours: public_hrs,
       approved_internal_hours: internal_hrs,

@@ -363,7 +363,34 @@ function TopBar({
       >
         {project.name}
       </a>
-      <span className="text-sm text-muted-foreground">by {project.user_display_name}</span>
+      <span className="text-sm text-muted-foreground">
+        by{' '}
+        <a
+          href={`/admin/users/${project.user_id}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="hover:underline text-foreground"
+        >
+          {project.user_display_name}
+        </a>
+        {project.collaborators.length > 0 && (
+          <>
+            {project.collaborators.map((c, i) => (
+              <span key={c.id}>
+                {i === 0 ? ' with ' : ', '}
+                <a
+                  href={`/admin/users/${c.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:underline text-foreground"
+                >
+                  {c.display_name}
+                </a>
+              </span>
+            ))}
+          </>
+        )}
+      </span>
 
       <div className="flex items-center gap-2 ml-auto">
         <Button variant="outline" size="sm" asChild>
@@ -644,8 +671,27 @@ export default function BuildReviewsShow({
                 <p className="text-sm text-muted-foreground leading-relaxed">{project.description}</p>
               )}
               <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
-                <img src={project.user_avatar} alt="" className="size-4 rounded-full" />
-                <span className="text-foreground">{project.user_display_name}</span>
+                <a
+                  href={`/admin/users/${project.user_id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 text-foreground hover:underline"
+                >
+                  <img src={project.user_avatar} alt="" className="size-4 rounded-full" />
+                  <span>{project.user_display_name}</span>
+                </a>
+                {project.collaborators.map((c) => (
+                  <a
+                    key={c.id}
+                    href={`/admin/users/${c.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 text-foreground hover:underline"
+                  >
+                    <img src={c.avatar} alt="" className="size-4 rounded-full" />
+                    <span>{c.display_name}</span>
+                  </a>
+                ))}
                 <span>|</span>
                 <span>{project.created_at}</span>
                 {project.tags.length > 0 && (

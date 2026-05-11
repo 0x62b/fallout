@@ -158,7 +158,8 @@ class Admin::Reviews::TimeAuditsController < Admin::Reviews::BaseController
       demo_link: project.demo_link,
       user_id: project.user_id,
       user_display_name: project.user.display_name,
-      user_avatar: project.user.avatar
+      user_avatar: project.user.avatar,
+      collaborators: project.collaborator_users.map { |u| { id: u.id, display_name: u.display_name, avatar: u.avatar } }
     }
   end
 

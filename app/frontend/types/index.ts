@@ -460,6 +460,7 @@ export interface ReviewProjectContext {
   user_display_name: string
   user_avatar: string
   user_slack_id: string | null
+  collaborators: { id: number; display_name: string; avatar: string }[]
 }
 
 export interface RequirementsCheckProjectContext extends ReviewProjectContext {
