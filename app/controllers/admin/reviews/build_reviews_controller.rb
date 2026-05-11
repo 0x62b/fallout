@@ -40,12 +40,21 @@ class Admin::Reviews::BuildReviewsController < Admin::Reviews::BaseController
       reviewer_notes: InertiaRails.defer { serialize_reviewer_notes(project) },
       reviewer_notes_path: admin_project_reviewer_notes_path(project),
       project_flagged: project.flagged?,
-      can: { update: policy(@review).update? },
+      can: { update: policy(@review).update?, swap_type: policy(@review).swap_type? },
       skip: params[:skip],
       heartbeat_path: heartbeat_admin_reviews_build_review_path(@review),
+      swap_type_path: swap_type_admin_reviews_build_review_path(@review),
       next_path: next_admin_reviews_build_reviews_path,
       index_path: admin_reviews_build_reviews_path
     }
+  end
+
+  def swap_type
+    authorize @review, :swap_type?
+    new_review = @review.ship.swap_phase_two_type!
+    redirect_to admin_reviews_design_review_path(new_review), notice: "Moved to Design Review."
+  rescue ActiveRecord::RecordInvalid => e
+    redirect_back fallback_location: admin_reviews_build_review_path(@review), alert: "Could not swap: #{e.message}"
   end
 
   def update

@@ -246,6 +246,40 @@ class Ship < ApplicationRecord
     review_class.find_or_create_by!(ship: self)
   end
 
+  # Admin-only swap between DesignReview and BuildReview for a pending ship. Carries
+  # in-progress reviewer work (feedback/internal_reason/hours_adjustment/koi_adjustment/
+  # annotations) onto the new review and preserves the original review's created_at so
+  # the queue wait time / position is unchanged. Returns the new review.
+  def swap_phase_two_type!
+    raise ActiveRecord::RecordInvalid.new(self), "ship is not pending" unless pending?
+
+    with_lock do
+      current = phase_two_review
+      raise ActiveRecord::RecordInvalid.new(self), "no phase two review to swap" if current.nil?
+      raise ActiveRecord::RecordInvalid.new(self), "phase two review is not pending" unless current.pending?
+
+      carry = {
+        feedback: current.feedback,
+        internal_reason: current.internal_reason,
+        hours_adjustment: current.hours_adjustment,
+        koi_adjustment: current.koi_adjustment,
+        annotations: current.annotations,
+        created_at: current.created_at
+      }
+
+      new_type = ship_type_design? ? :build : :design
+      new_class = new_type == :design ? DesignReview : BuildReview
+
+      current.destroy!
+      update!(ship_type: new_type)
+
+      new_review = new_class.new(ship: self, **carry)
+      new_review.skip_ship_recompute = true # No-op: status stays pending → pending, avoid redundant recompute
+      new_review.save!
+      new_review
+    end
+  end
+
   def recompute_status!
     new_status = derive_status
     if status != new_status

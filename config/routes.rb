@@ -290,11 +290,17 @@ Rails.application.routes.draw do
           collection { get :next }
         end
         resources :design_reviews, only: [ :index, :show, :update ] do
-          member { post :heartbeat }
+          member do
+            post :heartbeat
+            post :swap_type
+          end
           collection { get :next }
         end
         resources :build_reviews, only: [ :index, :show, :update ] do
-          member { post :heartbeat }
+          member do
+            post :heartbeat
+            post :swap_type
+          end
           collection { get :next }
         end
       end

@@ -448,9 +448,10 @@ interface PageProps {
   reviewer_notes?: ReviewerNote[]
   reviewer_notes_path: string
   project_flagged: boolean
-  can: { update: boolean }
+  can: { update: boolean; swap_type: boolean }
   skip: string | null
   heartbeat_path: string
+  swap_type_path: string
   next_path: string
   index_path: string
 }
@@ -465,8 +466,10 @@ export default function BuildReviewsShow({
   reviewer_notes,
   reviewer_notes_path,
   project_flagged,
+  can,
   skip,
   heartbeat_path,
+  swap_type_path,
   next_path,
 }: PageProps) {
   const isTerminal = review.status !== 'pending'
@@ -932,6 +935,32 @@ export default function BuildReviewsShow({
                 >
                   Return (Needs Changes)
                 </Button>
+
+                {can.swap_type && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button className="w-full" variant="ghost" size="sm" disabled={submitting}>
+                        Move to Design Review
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Move to Design Review?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This ship will be moved into the Design Review queue. Queued-at timestamp and current
+                          in-progress fields (feedback, internal reason, hours/koi adjustments) are preserved. This
+                          replaces the Build Review record.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => router.post(swap_type_path)}>
+                          Move to Design Review
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
               </div>
             </>
           )}

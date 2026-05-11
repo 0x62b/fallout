@@ -3,7 +3,7 @@ class Admin::Reviews::BaseController < Admin::ApplicationController
   skip_after_action :verify_authorized
   skip_after_action :verify_policy_scoped
 
-  before_action :set_review, only: %i[ show update heartbeat ]
+  before_action :set_review, only: %i[ show update heartbeat swap_type ]
   before_action :release_all_review_claims, only: %i[ index ]
   before_action :claim_review!, only: %i[ show ]
   before_action :extend_review_claim!, only: %i[ update ]
