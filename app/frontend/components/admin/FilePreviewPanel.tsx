@@ -9,7 +9,6 @@ import { ThreeMFLoader } from 'three/examples/jsm/loaders/3MFLoader.js'
 import * as THREE from 'three'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import rehypeRaw from 'rehype-raw'
 import hljs from 'highlight.js/lib/core'
 import json from 'highlight.js/lib/languages/json'
 import xml from 'highlight.js/lib/languages/xml'
@@ -333,7 +332,7 @@ function MarkdownPreview({ url }: { url: string }) {
   if (error || content === null) return <ErrorMessage />
   return (
     <div className="prose prose-sm dark:prose-invert max-w-none p-4 overflow-y-auto max-h-[60vh] [&_img]:max-w-full [&_img]:rounded [&_a]:text-blue-500 [&_a]:underline [&_pre]:bg-muted/50 [&_pre]:p-3 [&_pre]:rounded [&_code]:text-xs [&_table]:w-full [&_th]:text-left [&_th]:py-1 [&_td]:py-1 [&_tr]:border-b [&_tr]:border-border">
-      <Markdown key={url} remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
+      <Markdown key={url} remarkPlugins={[remarkGfm]}>
         {content}
       </Markdown>
     </div>
