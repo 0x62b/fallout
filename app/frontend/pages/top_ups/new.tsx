@@ -85,11 +85,15 @@ export default function TopUpsNew({ user_email, card_last4, card_purpose }: Prop
             </div>
           </div>
 
-          <div className="mb-6 text-dark-brown text-sm">
+          <div className="mb-6 text-dark-brown text-sm space-y-2">
             <p>
               You'll be redirected to HCB to pay with a card on file for <span className="font-bold">{user_email}</span>
               . Funds land on your card once the payment captures (usually instantly; refunds before deposit are flagged
               for admin).
+            </p>
+            <p className="border-2 border-dark-brown p-3 rounded-xs">
+              <span className="font-bold">Don't edit the donation message on HCB.</span> It contains a token we use to
+              match the donation back to you. If you change it, the money won't reach your card automatically.
             </p>
           </div>
 
