@@ -65,3 +65,5 @@ docs/plans
 
 # Meilisearch local data
 /data.ms/
+
+/tools/
